@@ -146,7 +146,6 @@ impl Permissions {
                         // (Revoke) Step 3.
                         let globalscope = self.global();
                         globalscope
-                            .as_window()
                             .permission_state_invocation_results()
                             .borrow_mut()
                             .remove(&root_desc.name.to_string());
@@ -179,7 +178,6 @@ impl Permissions {
                         // (Revoke) Step 3.
                         let globalscope = self.global();
                         globalscope
-                            .as_window()
                             .permission_state_invocation_results()
                             .borrow_mut()
                             .remove(&root_desc.name.to_string());
@@ -273,7 +271,6 @@ impl PermissionAlgorithm for Permissions {
                 let prompt = format!("{} {} ?", REQUEST_DIALOG_MESSAGE, perm_name.clone());
                 let state = prompt_user_from_embedder(prompt, &globalscope);
                 globalscope
-                    .as_window()
                     .permission_state_invocation_results()
                     .borrow_mut()
                     .insert(perm_name.to_string(), state);
@@ -313,7 +310,6 @@ pub fn get_descriptor_permission_state(
             PermissionState::Granted
         } else {
             globalscope
-                .as_window()
                 .permission_state_invocation_results()
                 .borrow_mut()
                 .remove(&permission_name.to_string());
@@ -325,7 +321,6 @@ pub fn get_descriptor_permission_state(
 
     // Step 3.
     if let Some(prev_result) = globalscope
-        .as_window()
         .permission_state_invocation_results()
         .borrow()
         .get(&permission_name.to_string())
@@ -335,7 +330,6 @@ pub fn get_descriptor_permission_state(
 
     // Store the invocation result
     globalscope
-        .as_window()
         .permission_state_invocation_results()
         .borrow_mut()
         .insert(permission_name.to_string(), state);
