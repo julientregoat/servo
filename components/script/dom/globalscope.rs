@@ -4,6 +4,7 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSourceBinding::EventSourceMethods;
+use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use crate::dom::bindings::conversions::{root_from_object, root_from_object_static};
@@ -40,6 +41,7 @@ use crate::timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
 use crate::timers::{OneshotTimers, TimerCallback};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom_struct::dom_struct;
+use embedder_traits::EmbedderMsg;
 use ipc_channel::ipc::IpcSender;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::JSObject;
@@ -55,7 +57,7 @@ use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::ImageCache;
 use net_traits::{CoreResourceThread, IpcSend, ResourceThreads};
 use profile_traits::{mem as profile_mem, time as profile_time};
-use script_traits::{MsDuration, ScriptToConstellationChan, TimerEvent};
+use script_traits::{MsDuration, ScriptMsg, ScriptToConstellationChan, TimerEvent};
 use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
 use servo_url::{MutableOrigin, ServoUrl};
 use std::borrow::Cow;
@@ -123,6 +125,9 @@ pub struct GlobalScope {
 
     /// The origin of the globalscope
     origin: MutableOrigin,
+
+    /// A map for storing the previous permission state read results.
+    permission_state_invocation_results: DomRefCell<HashMap<String, PermissionState>>,
 
     /// The microtask queue associated with this global.
     ///
@@ -197,6 +202,7 @@ impl GlobalScope {
             resource_threads,
             timers: OneshotTimers::new(timer_event_chan, scheduler_chan),
             origin,
+            permission_state_invocation_results: Default::default(),
             microtask_queue,
             list_auto_close_worker: Default::default(),
             event_source_tracker: DOMTracker::new(),
@@ -205,6 +211,12 @@ impl GlobalScope {
             is_headless,
             user_agent,
         }
+    }
+
+    pub fn permission_state_invocation_results(
+        &self,
+    ) -> &DomRefCell<HashMap<String, PermissionState>> {
+        &self.permission_state_invocation_results
     }
 
     pub fn track_worker(&self, closing_worker: Arc<AtomicBool>) {
@@ -376,6 +388,14 @@ impl GlobalScope {
     /// Get a sender to the constellation thread.
     pub fn script_to_constellation_chan(&self) -> &ScriptToConstellationChan {
         &self.script_to_constellation_chan
+    }
+
+    pub fn send_to_embedder(&self, msg: EmbedderMsg) {
+        self.send_to_constellation(ScriptMsg::ForwardToEmbedder(msg));
+    }
+
+    pub fn send_to_constellation(&self, msg: ScriptMsg) {
+        self.script_to_constellation_chan().send(msg).unwrap();
     }
 
     pub fn scheduler_chan(&self) -> &IpcSender<TimerSchedulerMsg> {
