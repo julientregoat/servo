@@ -14,6 +14,8 @@ bench = false
 
 [features]
 azure_backend = ["simpleservo/azure_backend"]
+"layout-2013" = ["simpleservo/layout-2013"]
+"layout-2020" = ["simpleservo/layout-2020"]
 raqote_backend = ["simpleservo/raqote_backend"]
 
 [dependencies]

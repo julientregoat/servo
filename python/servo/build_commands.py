@@ -307,6 +307,9 @@ class MachCommands(CommandBase):
         if "raqote_backend" not in features:
             features += ["azure_backend"]
 
+        if "layout-2020" not in features:
+            features += ["layout-2013"]
+
         if features:
             opts += ["--features", "%s" % ' '.join(features)]
 
